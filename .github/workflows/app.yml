@@ -1,0 +1,169 @@
+name: Build App
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Debug'
+        type: boolean
+        required: false
+        default: false
+      prerelease:
+        description: 'Prerelease'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    env:
+      ANDROID_HOME: "/usr/local/lib/android/sdk"
+      KEYSTORE: ${{ secrets.KEYSTORE }}
+      IS_DEBUG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug == true }}
+      IS_PRERELEASE: ${{ (github.event_name == 'push' && github.ref_name == 'master') || (github.event_name == 'workflow_dispatch' && github.event.inputs.prerelease == true) }}
+
+    outputs:
+      artifactName: ${{ steps.buildWithGradle.outputs.artifactName }}
+      versionName: ${{ steps.buildWithGradle.outputs.versionName }}
+      filePath: ${{ steps.buildWithGradle.outputs.filePath }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Create signing.properties
+        if: ${{ env.IS_DEBUG == 'false' && env.KEYSTORE != '' }}
+        run: |
+          echo KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }} > signing.properties
+          echo KEYSTORE_ALIAS=${{ secrets.KEYSTORE_ALIAS }} >> signing.properties
+          echo KEYSTORE_ALIAS_PASSWORD='${{ secrets.KEYSTORE_ALIAS_PASSWORD }}' >> signing.properties
+          echo KEYSTORE_FILE=../key.jks >> signing.properties
+          printf "%s" "${{ secrets.KEYSTORE }}" | base64 --decode > key.jks
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-scan-publish: true
+          build-scan-terms-of-use-url: "https://gradle.com/terms-of-service"
+          build-scan-terms-of-use-agree: "yes"
+
+      - name: Build with Gradle
+        id: buildWithGradle
+        env:
+          TERMUX_PACKAGE_VARIANT: "apt-android-7"
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+          echo 'org.gradle.caching=true' >> gradle.properties
+          echo 'org.gradle.parallel=true' >> gradle.properties
+
+          if [ "$IS_DEBUG" = "true" ]; then
+            CMD="./gradlew :app:assembleDebug"
+            APK_DIR="app/build/outputs/apk/debug"
+            ARTIFACT_PREFIX="debug"
+          else
+            CMD="./gradlew :app:assembleRelease"
+            APK_DIR="app/build/outputs/apk/release"
+            ARTIFACT_PREFIX="release"
+          fi
+
+          VERSION=$(./gradlew :app:versionName -q --console=plain)
+          echo "$VERSION" > version.txt
+
+          export GRADLE_OPTS="-Xmx4g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError"
+          eval $CMD --stacktrace --info
+          
+          # Find the universal APK
+          FILE=$(ls "$APK_DIR"/*_universal.apk | head -n 1)
+          ARTIFACT_NAME="termux-plus-${ARTIFACT_PREFIX}-${VERSION}.apk"
+
+          RENAMED="$(dirname "$FILE")/$ARTIFACT_NAME"
+          mv "$FILE" "$RENAMED"
+
+          echo "artifactName=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          echo "versionName=${VERSION}" >> $GITHUB_OUTPUT
+          echo "filePath=${RENAMED}" >> $GITHUB_OUTPUT
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.buildWithGradle.outputs.artifactName }}
+          path: ${{ steps.buildWithGradle.outputs.filePath }}
+
+      - name: Upload Version File
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-file
+          path: version.txt
+
+  release:
+    if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || (github.event_name == 'workflow_dispatch' && github.event.inputs.debug != true) }}
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      IS_PRERELEASE: ${{ (github.event_name == 'push' && github.ref_name == 'master') || (github.event_name == 'workflow_dispatch' && github.event.inputs.prerelease == true) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Version File
+        uses: actions/download-artifact@v4
+        with:
+          name: version-file
+
+      - name: Read Version
+        id: version
+        run: |
+          VERSION=$(cat version.txt)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create Release Tag
+        run: |
+          TAG_NAME="v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            # Delete tag if it exists locally or remotely to update it
+            git tag -d "$TAG_NAME"
+            git push origin ":refs/tags/$TAG_NAME" || true
+          fi
+          git tag "$TAG_NAME" -m "Release version $VERSION"
+          git push origin "$TAG_NAME"
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifactName }}
+          path: files
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG_NAME="v${VERSION}"
+          FLAGS=""
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            FLAGS="--prerelease"
+          fi
+
+          gh release create "$TAG_NAME" files/*.apk $FLAGS --title "TermuxPlus $VERSION" --notes "Release version $VERSION" || \
+          gh release edit "$TAG_NAME" --add-asset files/*.apk --title "TermuxPlus $VERSION" --notes "Updated release $VERSION"

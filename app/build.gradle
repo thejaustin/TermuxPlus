@@ -84,10 +84,30 @@ android {
             storePassword 'xrj45yWGLbsO7W0v'
             keyPassword 'xrj45yWGLbsO7W0v'
         }
+
+        release {
+            storeFile file('testkey_untrusted.jks')
+            keyAlias 'alias'
+            storePassword 'xrj45yWGLbsO7W0v'
+            keyPassword 'xrj45yWGLbsO7W0v'
+        }
+    }
+
+    def ksFile = rootProject.file("signing.properties")
+    if (ksFile.canRead()) {
+        def props = new Properties()
+        props.load(new FileInputStream(ksFile))
+        if (props.containsKey("KEYSTORE_FILE")) {
+            android.signingConfigs.release.storeFile = file(props["KEYSTORE_FILE"])
+            android.signingConfigs.release.storePassword = props["KEYSTORE_PASSWORD"]
+            android.signingConfigs.release.keyAlias = props["KEYSTORE_ALIAS"]
+            android.signingConfigs.release.keyPassword = props["KEYSTORE_ALIAS_PASSWORD"]
+        }
     }
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources false // Reproducible builds
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
