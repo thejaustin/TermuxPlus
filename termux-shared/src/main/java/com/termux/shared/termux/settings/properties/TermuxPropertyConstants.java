@@ -162,7 +162,8 @@ public final class TermuxPropertyConstants {
     public static final String KEY_USE_FULLSCREEN_WORKAROUND =  "use-fullscreen-workaround"; // Default: "use-fullscreen-workaround"
 
 
-
+    /** Defines the key for whether to enable keyboard autocorrect and suggestions */
+    public static final String KEY_ENABLE_KEYBOARD_AUTOCORRECT = "enable-keyboard-autocorrect"; // Default: "enable-keyboard-autocorrect"
 
 
     /* int */
@@ -403,6 +404,7 @@ public final class TermuxPropertyConstants {
         KEY_USE_CTRL_SPACE_WORKAROUND,
         KEY_USE_FULLSCREEN,
         KEY_USE_FULLSCREEN_WORKAROUND,
+        KEY_ENABLE_KEYBOARD_AUTOCORRECT,
         TermuxConstants.PROP_ALLOW_EXTERNAL_APPS,
 
         /* int */
@@ -449,6 +451,7 @@ public final class TermuxPropertyConstants {
         KEY_USE_CTRL_SPACE_WORKAROUND,
         KEY_USE_FULLSCREEN,
         KEY_USE_FULLSCREEN_WORKAROUND,
+        KEY_ENABLE_KEYBOARD_AUTOCORRECT,
         TermuxConstants.PROP_ALLOW_EXTERNAL_APPS
     ));
 

@@ -310,7 +310,10 @@ public final class TerminalView extends View {
         // initially started with the alternate view or if activity is returned to from another app
         // and the alternate view was the one selected the last time.
         if (mClient.isTerminalViewSelected()) {
-            if (mClient.shouldEnforceCharBasedInput()) {
+            if (mClient.shouldEnableAutocorrect()) {
+                // Enable autocorrect, suggestions and gestures (swipe actions)
+                outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_NORMAL;
+            } else if (mClient.shouldEnforceCharBasedInput()) {
                 // Some keyboards seems do not reset the internal state on TYPE_NULL.
                 // Affects mostly Samsung stock keyboards.
                 // https://github.com/termux/termux-app/issues/686

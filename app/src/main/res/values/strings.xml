@@ -188,6 +188,11 @@
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">Soft keyboard will be enabled only if
                     no hardware keyboard is connected.</string>
 
+                <!-- Keyboard Autocorrect -->
+                <string name="termux_keyboard_autocorrect_enabled_title">Keyboard Autocorrect</string>
+                <string name="termux_keyboard_autocorrect_enabled_off">Autocorrect, suggestions and swipe gestures will be disabled. (Default)</string>
+                <string name="termux_keyboard_autocorrect_enabled_on">Autocorrect, suggestions and swipe gestures will be enabled.</string>
+
 
         <!-- Terminal View Preferences -->
         <string name="termux_terminal_view_preferences_title">Terminal View</string>

@@ -112,6 +112,16 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
 
 
 
+    public boolean isKeyboardAutocorrectEnabled() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_KEYBOARD_AUTOCORRECT_ENABLED, TERMUX_APP.DEFAULT_VALUE_KEYBOARD_AUTOCORRECT_ENABLED);
+    }
+
+    public void setKeyboardAutocorrectEnabled(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_KEYBOARD_AUTOCORRECT_ENABLED, value, false);
+    }
+
+
+
     public boolean shouldKeepScreenOn() {
         return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_KEEP_SCREEN_ON, TERMUX_APP.DEFAULT_VALUE_KEEP_SCREEN_ON);
     }

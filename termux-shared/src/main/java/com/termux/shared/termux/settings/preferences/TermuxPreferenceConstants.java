@@ -119,6 +119,13 @@ public final class TermuxPreferenceConstants {
 
 
         /**
+         * Defines the key for whether to enable keyboard autocorrect and suggestions
+         */
+        public static final String KEY_KEYBOARD_AUTOCORRECT_ENABLED = "keyboard_autocorrect_enabled";
+        public static final boolean DEFAULT_VALUE_KEYBOARD_AUTOCORRECT_ENABLED = false;
+
+
+        /**
          * Defines the key for whether to always keep screen on.
          */
         public static final String KEY_KEEP_SCREEN_ON = "screen_always_on";

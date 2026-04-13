@@ -217,6 +217,12 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
     }
 
     @Override
+    public boolean shouldEnableAutocorrect() {
+        return mActivity.getProperties().isAutocorrectEnabled() || 
+               mActivity.getPreferences().isKeyboardAutocorrectEnabled();
+    }
+
+    @Override
     public boolean shouldUseCtrlSpaceWorkaround() {
         return mActivity.getProperties().isUsingCtrlSpaceWorkaround();
     }
